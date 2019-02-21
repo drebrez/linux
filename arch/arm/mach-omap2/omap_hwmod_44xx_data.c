@@ -3560,7 +3560,7 @@ static struct omap_hwmod_ocp_if *omap44xx_hwmod_ocp_ifs[] __initdata = {
 	&omap44xx_mpu__emif1,
 	&omap44xx_mpu__emif2,
 	&omap44xx_l3_main_2__aes1,
-	&omap44xx_l3_main_2__aes2,
+	/* &omap44xx_l3_main_2__aes2, */
 	&omap44xx_l3_main_2__des,
 	&omap44xx_l3_main_2__sha0,
 	NULL,
