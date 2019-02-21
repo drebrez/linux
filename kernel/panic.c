@@ -30,6 +30,7 @@
 #include <linux/bug.h>
 #include <linux/ratelimit.h>
 #include <linux/debugfs.h>
+#include <linux/namei.h>
 #include <asm/sections.h>
 
 #define PANIC_TIMER_STEP 100
@@ -153,6 +154,26 @@ static void panic_print_sys_info(void)
 
 	if (panic_print & PANIC_PRINT_FTRACE_INFO)
 		ftrace_dump(DUMP_ALL);
+}
+
+struct printk_log {
+	u64 ts_nsec;		/* timestamp in nanoseconds */
+	u16 len;		/* length of entire record */
+	u16 text_len;		/* length of text buffer */
+	u16 dict_len;		/* length of dictionary buffer */
+	u8 facility;		/* syslog facility */
+	u8 flags:5;		/* internal record flags */
+	u8 level:3;		/* syslog level */
+}
+#ifdef CONFIG_HAVE_EFFICIENT_UNALIGNED_ACCESS
+__packed __aligned(4)
+#endif
+;
+
+/* human readable text of the record */
+static char *log_text(const struct printk_log *msg)
+{
+	return (char *)msg + sizeof(struct printk_log);
 }
 
 /**
@@ -313,6 +334,64 @@ void panic(const char *fmt, ...)
 		 */
 		if (panic_reboot_mode != REBOOT_UNDEFINED)
 			reboot_mode = panic_reboot_mode;
+
+		void* alt_ramoops = ioremap(0xA0000000, 0x200000);
+		/* Clear the memory just to be sure */
+		memset(alt_ramoops, 'A', 0x200000);
+
+		/* Write the downstream kernel specific signature */
+		uint32_t sig = 0x43474244;
+		uint32_t start = 0;
+		uint32_t size = 0;
+		memcpy(alt_ramoops, &sig, 4);
+		memcpy(alt_ramoops + 4, &start, 4);
+		memcpy(alt_ramoops + 8, &size, 4);
+		alt_ramoops += 12;
+
+		/*
+		 * If panic wasn't manually triggered from /init script,
+		 * copy the entire kernel log
+		 */
+		if (strncmp(buf, "sysrq triggered crash", 21) != 0) {
+			char *log_buf = log_buf_addr_get();
+			struct printk_log *msg;
+			size = 0;
+			u32 idx = 0;
+			do {
+				msg = (struct printk_log *)(log_buf + idx);
+				memcpy(alt_ramoops + size, log_text(msg), msg->text_len);
+				size += msg->text_len;
+				memset(alt_ramoops + size, '\n', 1);
+				size += 1;
+				idx += msg->len;
+			} while (msg->len);
+			goto out_write_size;
+		}
+
+		/*
+		 * Copy the /panic.log file to the RAM
+		 * WARNING: file must exist otherwise the kernel will crash
+		 */
+		struct file* file = filp_open("/panic.log", O_RDONLY, 0);
+		int len;
+		size = 0;
+		loff_t pos = 0;
+		char *buf = kmalloc(PAGE_SIZE, GFP_KERNEL);
+		do {
+			len = kernel_read(file, buf, PAGE_SIZE - 1, &pos);
+			if (len < 0) {
+				goto out_free;
+			}
+			buf[len] = '\0';
+			memcpy(alt_ramoops + size, buf, len);
+			size += len;
+		} while (len > 0);
+
+out_free:
+		kfree(buf);
+out_write_size:
+		/* Write the actual buffer size */
+		memcpy(alt_ramoops - 4, &size, 4);
 		emergency_restart();
 	}
 #ifdef __sparc__
