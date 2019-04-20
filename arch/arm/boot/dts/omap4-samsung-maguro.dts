@@ -59,6 +59,12 @@
 	pinctrl-0 = <&i2c1_pins>;
 
 	clock-frequency = <400000>;
+
+	twl: twl@48 {
+		reg = <0x48>;
+		interrupts = <GIC_SPI 7 IRQ_TYPE_LEVEL_HIGH>;		/* IRQ_SYS_1N cascaded to gic */
+	};
+
 };
 
 &i2c2 {
@@ -95,7 +101,6 @@
 		led@2 {
 			reg = <2>;
 			label = "green:indicator";
-			default-state = "on";
 		};
 
 		led@3 {
@@ -103,4 +108,92 @@
 			label = "blue:indicator";
 		};
 	};
+};
+
+#include "twl6030.dtsi"
+#include "twl6030_omap4.dtsi"
+
+&vaux1 {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L427-L441 */
+	regulator-min-microvolt = <3000000>;
+	regulator-max-microvolt = <3000000>;
+	regulator-always-on;
+};
+
+&vaux2 {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L443-L458 */
+	regulator-min-microvolt = <1200000>;
+	regulator-max-microvolt = <2800000>;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&vaux3 {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L466-L482 */
+	regulator-min-microvolt = <3100000>;
+	regulator-max-microvolt = <3100000>;
+};
+
+&vmmc {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L484-L500 */
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+};
+
+&vpp {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L502-L517 */
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <2500000>;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&vusim {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L525-L539 */
+	regulator-min-microvolt = <2200000>;
+	regulator-max-microvolt = <2200000>;
+};
+
+&vana {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L541-L554 */
+	regulator-min-microvolt = <2100000>;
+	regulator-max-microvolt = <2100000>;
+	regulator-always-on;
+};
+
+&vcxio {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L561-L576 */
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+};
+
+&vdac {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L584-L598 */
+	regulator-min-microvolt = <1800000>;
+	regulator-max-microvolt = <1800000>;
+};
+
+&vusb {
+	/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/board-tuna.c#L604-L619 */
+	regulator-min-microvolt = <3300000>;
+	regulator-max-microvolt = <3300000>;
+	regulator-state-mem {
+		regulator-off-in-suspend;
+	};
+};
+
+&twl_usb_comparator {
+	usb-supply = <&vusb>;
+};
+
+&usb_otg_hs {
+	interface-type = <1>;
+	mode = <3>;
+	power = <50>;
+};
+
+&usbhshost {
+	port1-mode = "ehci-phy";
 };
