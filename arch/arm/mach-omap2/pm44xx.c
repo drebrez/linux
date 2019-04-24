@@ -16,6 +16,9 @@
 #include <linux/list.h>
 #include <linux/err.h>
 #include <linux/slab.h>
+#include <linux/gpio.h>
+#include <linux/pda_power.h>
+#include <linux/max17040_battery.h>
 #include <asm/system_misc.h>
 
 #include "soc.h"
@@ -23,6 +26,14 @@
 #include "clockdomain.h"
 #include "powerdomain.h"
 #include "pm.h"
+
+#define GPIO_CHARGING_N	83
+#define GPIO_TA_NCONNECTED	142
+#define GPIO_CHARGE_N		13
+#define GPIO_CHG_CUR_ADJ	102
+
+static DEFINE_SPINLOCK(charge_en_lock);
+static int charger_state;
 
 u16 pm44xx_errata;
 
@@ -244,6 +255,76 @@ int __init omap4_pm_init_early(void)
 	return 0;
 }
 
+static struct gpio charger_gpios[] = {
+	{ .gpio = GPIO_CHARGING_N, .flags = GPIOF_IN, .label = "charging_n" },
+	{ .gpio = GPIO_TA_NCONNECTED, .flags = GPIOF_IN, .label = "charger_n" },
+	{ .gpio = GPIO_CHARGE_N, .flags = GPIOF_OUT_INIT_HIGH, .label = "charge_n" },
+	{ .gpio = GPIO_CHG_CUR_ADJ, .flags = GPIOF_OUT_INIT_LOW, .label = "charge_cur_adj" },
+};
+
+static int charger_init(struct device *dev)
+{
+	return gpio_request_array(charger_gpios, ARRAY_SIZE(charger_gpios));
+}
+
+static void charger_exit(struct device *dev)
+{
+	gpio_free_array(charger_gpios, ARRAY_SIZE(charger_gpios));
+}
+
+static void set_charge_en(int state)
+{
+	gpio_set_value(GPIO_CHARGE_N, !state);
+}
+
+static void charger_set_charge(int state)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&charge_en_lock, flags);
+	gpio_set_value(GPIO_CHG_CUR_ADJ, !!(state & PDA_POWER_CHARGE_AC));
+	charger_state = state;
+	set_charge_en(state);
+	spin_unlock_irqrestore(&charge_en_lock, flags);
+}
+
+static char *tuna_charger_supplied_to[] = {
+	"battery",
+};
+
+static const __initdata struct pda_power_pdata charger_pdata = {
+	.init = charger_init,
+	.exit = charger_exit,
+	.set_charge = charger_set_charge,
+	.wait_for_status = 500,
+	.wait_for_charger = 500,
+	.supplied_to = tuna_charger_supplied_to,
+	.num_supplicants = ARRAY_SIZE(tuna_charger_supplied_to),
+	.use_otg_notifier = true,
+};
+
+/*static int charger_is_online(void)
+{
+	return !gpio_get_value(GPIO_TA_NCONNECTED);
+}
+
+static int charger_is_charging(void)
+{
+	return !gpio_get_value(GPIO_CHARGING_N);
+}
+
+static struct max17040_platform_data max17040_pdata = {
+	.charger_online = charger_is_online,
+	.charger_enable = charger_is_charging,
+};
+
+static const __initdata struct i2c_board_info max17040_i2c[] = {
+	{
+		I2C_BOARD_INFO("max17040", 0x36),
+		.platform_data = &max17040_pdata,
+	}
+};*/
+
 /**
  * omap4_pm_init - Init routine for OMAP4+ devices
  *
@@ -254,6 +335,7 @@ int __init omap4_pm_init_early(void)
 int __init omap4_pm_init(void)
 {
 	int ret = 0;
+	struct platform_device *pdev;
 
 	if (omap_rev() == OMAP4430_REV_ES1_0) {
 		WARN(1, "Power Management not supported on OMAP4430 ES1.0\n");
@@ -302,6 +384,13 @@ int __init omap4_pm_init(void)
 
 	//if (cpu_is_omap44xx() || soc_is_omap54xx())
 	//	omap4_idle_init();
+
+	pdev = platform_device_register_resndata(NULL, "pda-power", -1,
+		NULL, 0, &charger_pdata, sizeof(charger_pdata));
+	if (IS_ERR_OR_NULL(pdev))
+		pr_err("cannot register pda-power\n");
+
+	//i2c_register_board_info(4, max17040_i2c, ARRAY_SIZE(max17040_i2c));
 
 err2:
 	return ret;
