@@ -16,6 +16,7 @@
 #include <linux/power_supply.h>
 #include <linux/max17040_battery.h>
 #include <linux/slab.h>
+#include <linux/gpio.h>
 
 #define MAX17040_VCELL	0x02
 #define MAX17040_SOC	0x04
@@ -26,7 +27,10 @@
 
 
 #define MAX17040_DELAY		1000
-#define MAX17040_BATTERY_FULL	95
+#define MAX17040_BATTERY_FULL	100
+
+#define GPIO_CHARGING_N	83
+#define GPIO_TA_NCONNECTED	142
 
 struct max17040_chip {
 	struct i2c_client		*client;
@@ -105,17 +109,17 @@ static void max17040_get_vcell(struct i2c_client *client)
 
 	vcell = max17040_read_reg(client, MAX17040_VCELL);
 
-	chip->vcell = vcell;
+	chip->vcell = (vcell >> 4) * 1250;
 }
 
 static void max17040_get_soc(struct i2c_client *client)
 {
 	struct max17040_chip *chip = i2c_get_clientdata(client);
-	u16 soc;
+	u32 soc;
 
 	soc = max17040_read_reg(client, MAX17040_SOC);
-
-	chip->soc = (soc >> 8);
+	soc = (soc - (3 << 8)) * 100 / (96 - 3);
+	chip->soc = soc >> 8;
 }
 
 static void max17040_get_version(struct i2c_client *client)
@@ -137,18 +141,22 @@ static void max17040_get_online(struct i2c_client *client)
 		chip->online = 1;
 }
 
+static int charger_is_online(void)
+{
+	return !gpio_get_value(GPIO_TA_NCONNECTED);
+}
+
+static int charger_is_charging(void)
+{
+	return !gpio_get_value(GPIO_CHARGING_N);
+}
+
 static void max17040_get_status(struct i2c_client *client)
 {
 	struct max17040_chip *chip = i2c_get_clientdata(client);
 
-	if (!chip->pdata || !chip->pdata->charger_online
-			|| !chip->pdata->charger_enable) {
-		chip->status = POWER_SUPPLY_STATUS_UNKNOWN;
-		return;
-	}
-
-	if (chip->pdata->charger_online()) {
-		if (chip->pdata->charger_enable())
+	if (charger_is_online()) {
+		if (charger_is_charging())
 			chip->status = POWER_SUPPLY_STATUS_CHARGING;
 		else
 			chip->status = POWER_SUPPLY_STATUS_NOT_CHARGING;
@@ -219,6 +227,12 @@ static int max17040_probe(struct i2c_client *client,
 
 	max17040_reset(client);
 	max17040_get_version(client);
+
+	gpio_request(GPIO_CHARGING_N, NULL);
+	gpio_direction_input(GPIO_CHARGING_N);
+
+	gpio_request(GPIO_TA_NCONNECTED, NULL);
+	gpio_direction_input(GPIO_TA_NCONNECTED);
 
 	INIT_DEFERRABLE_WORK(&chip->work, max17040_work);
 	queue_delayed_work(system_power_efficient_wq, &chip->work,

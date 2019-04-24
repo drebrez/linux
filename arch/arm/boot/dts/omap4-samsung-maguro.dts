@@ -119,6 +119,11 @@
 			label = "blue:indicator";
 		};
 	};
+
+	fuelgauge@36 {
+		compatible = "maxim,max17040";
+		reg = <0x36>;
+	};
 };
 
 #include "twl6030.dtsi"
