@@ -2,6 +2,7 @@
 /dts-v1/;
 
 #include "omap4460.dtsi"
+#include <dt-bindings/input/input.h>
 
 / {
 	model = "Samsung Galaxy Nexus";
@@ -20,6 +21,29 @@
 		ramoops_region@a0000000 {
 			no-map;
 			reg = <0xa0000000 0x200000>;
+		};
+	};
+
+	gpio-keys {
+		compatible = "gpio-keys";
+
+		power {
+			label = "power";
+			gpios = <&gpio1 3 GPIO_ACTIVE_HIGH>;
+			linux,code = <KEY_POWER>;
+			wakeup-source;
+		};
+
+		volume-down {
+			label = "volume_down";
+			gpios = <&gpio1 8 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEDOWN>;
+		};
+
+		volume-up {
+			label = "volume_up";
+			gpios = <&gpio1 30 GPIO_ACTIVE_LOW>;
+			linux,code = <KEY_VOLUMEUP>;
 		};
 	};
 };
