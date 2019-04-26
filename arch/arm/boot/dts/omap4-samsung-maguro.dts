@@ -148,6 +148,16 @@
 		compatible = "maxim,max17040";
 		reg = <0x36>;
 	};
+
+	gyroscope@68 {
+		compatible = "invensense,mpu3050";
+		reg = <0x68>;
+	};
+
+	accelerometer@18 {
+		compatible = "bosch,bma250";
+		reg = <0x18>;
+	};
 };
 
 #include "twl6030.dtsi"
