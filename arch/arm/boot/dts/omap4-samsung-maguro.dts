@@ -102,12 +102,17 @@
 
 	mmc1_pins: pinmux_mmc1_pins {
 		pinctrl-single,pins = <
-			OMAP4_IOPAD(0xe4, PIN_OUTPUT | MUX_MODE0)	/* sdmmc1_clk */
-			OMAP4_IOPAD(0xe6, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_cmd */
-			OMAP4_IOPAD(0xe8, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat0 */
-			OMAP4_IOPAD(0xea, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat1 */
-			OMAP4_IOPAD(0xec, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat2 */
-			OMAP4_IOPAD(0xee, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat3 */
+			/* https://github.com/LineageOS/android_kernel_samsung_tuna/blob/3900c2b6dcee9198e4e03abfecdedd1c30f68c0f/arch/arm/mach-omap2/mux44xx.h#L113-L122 */
+			OMAP4_IOPAD(0xe2, PIN_OUTPUT | MUX_MODE0)	/* sdmmc1_clk */
+			OMAP4_IOPAD(0xe4, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_cmd */
+			OMAP4_IOPAD(0xe6, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat0 */
+			OMAP4_IOPAD(0xe8, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat1 */
+			OMAP4_IOPAD(0xea, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat2 */
+			OMAP4_IOPAD(0xec, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat3 */
+			OMAP4_IOPAD(0xee, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat4 */
+			OMAP4_IOPAD(0xf0, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat5 */
+			OMAP4_IOPAD(0xf2, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat6 */
+			OMAP4_IOPAD(0xf4, PIN_INPUT_PULLUP | MUX_MODE0)	/* sdmmc1_dat7 */
 		>;
 	};
 };
@@ -258,14 +263,30 @@
 };
 
 &mmc1 {
-	status = "ok";
+	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&mmc1_pins>;
 
 	vmmc-supply = <&vmmc>;
 	bus-width = <8>;
 	cap-mmc-highspeed;
-	ti,non-removable;
+	non-removable;
+};
+
+&mmc2 {
+	status = "disabled";
+};
+
+&mmc3 {
+	status = "disabled";
+};
+
+&mmc4 {
+	status = "disabled";
+};
+
+&mmc5 {
+	status = "disabled";
 };
 
 &twl_usb_comparator {
