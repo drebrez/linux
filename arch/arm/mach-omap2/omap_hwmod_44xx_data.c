@@ -4206,20 +4206,20 @@ static struct omap_hwmod_ocp_if *omap44xx_hwmod_ocp_ifs[] __initdata = {
 	&omap44xx_dsp__iva,
 	/* &omap44xx_dsp__sl2if, */
 	&omap44xx_l4_cfg__dsp,
-	&omap44xx_l3_main_2__dss,
-	&omap44xx_l4_per__dss,
-	&omap44xx_l3_main_2__dss_dispc,
-	&omap44xx_l4_per__dss_dispc,
-	&omap44xx_l3_main_2__dss_dsi1,
-	&omap44xx_l4_per__dss_dsi1,
-	&omap44xx_l3_main_2__dss_dsi2,
-	&omap44xx_l4_per__dss_dsi2,
-	&omap44xx_l3_main_2__dss_hdmi,
-	&omap44xx_l4_per__dss_hdmi,
-	&omap44xx_l3_main_2__dss_rfbi,
-	&omap44xx_l4_per__dss_rfbi,
-	&omap44xx_l3_main_2__dss_venc,
-	&omap44xx_l4_per__dss_venc,
+	/*&omap44xx_l3_main_2__dss,*/
+	/*&omap44xx_l4_per__dss,*/
+	/*&omap44xx_l3_main_2__dss_dispc,*/
+	/*&omap44xx_l4_per__dss_dispc,*/
+	/*&omap44xx_l3_main_2__dss_dsi1,*/
+	/*&omap44xx_l4_per__dss_dsi1,*/
+	/*&omap44xx_l3_main_2__dss_dsi2,*/
+	/*&omap44xx_l4_per__dss_dsi2,*/
+	/*&omap44xx_l3_main_2__dss_hdmi,*/
+	/*&omap44xx_l4_per__dss_hdmi,*/
+	/*&omap44xx_l3_main_2__dss_rfbi,*/
+	/*&omap44xx_l4_per__dss_rfbi,*/
+	/*&omap44xx_l3_main_2__dss_venc,*/
+	/*&omap44xx_l4_per__dss_venc,*/
 	&omap44xx_l4_per__elm,
 	&omap44xx_l4_cfg__fdif,
 	&omap44xx_l4_wkup__gpio1,
