@@ -22,6 +22,29 @@
 			no-map;
 			reg = <0xa0000000 0x200000>;
 		};
+
+		framebuffer_region@bea70000 {
+			no-map;
+			reg = <0xbea70000 (720 * 1280 * 4)>;
+		};
+	};
+
+	chosen {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		framebuffer@bea70000 {
+			compatible = "simple-framebuffer";
+			reg = <0xbea70000 (720 * 1280 * 4)>;
+			width = <720>;
+			height = <1280>;
+			stride = <(720 * 4)>;
+			format = "a8r8g8b8";
+
+			vdd3-supply = <&vaux3>;
+			vci-supply = <&vusim>;
+		};
 	};
 
 	gpio-keys {
