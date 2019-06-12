@@ -19,6 +19,7 @@
 #include <linux/gpio.h>
 #include <linux/pda_power.h>
 #include <linux/max17040_battery.h>
+#include <linux/reboot.h>
 #include <asm/system_misc.h>
 
 #include "soc.h"
@@ -26,11 +27,17 @@
 #include "clockdomain.h"
 #include "powerdomain.h"
 #include "pm.h"
+#include "omap4-sar-layout.h"
 
 #define GPIO_CHARGING_N	83
 #define GPIO_TA_NCONNECTED	142
 #define GPIO_CHARGE_N		13
 #define GPIO_CHG_CUR_ADJ	102
+
+#define REBOOT_FLAG_RECOVERY	0x52564352
+#define REBOOT_FLAG_FASTBOOT	0x54534146
+#define REBOOT_FLAG_NORMAL	0x4D524F4E
+#define REBOOT_FLAG_POWER_OFF	0x46464F50
 
 static DEFINE_SPINLOCK(charge_en_lock);
 static int charger_state;
@@ -325,6 +332,40 @@ static const __initdata struct i2c_board_info max17040_i2c[] = {
 	}
 };*/
 
+static int reboot_notifier_call(struct notifier_block *this,
+				unsigned long code, void *_cmd)
+{
+	void __iomem *sar_base;
+	unsigned int flag = REBOOT_FLAG_NORMAL;
+
+	sar_base = omap4_get_sar_ram_base();
+
+	if (!sar_base)
+		return notifier_from_errno(-ENOMEM);
+
+	if (code == SYS_RESTART) {
+		if (_cmd) {
+			if (!strcmp(_cmd, "recovery"))
+				flag = REBOOT_FLAG_RECOVERY;
+			else if (!strcmp(_cmd, "bootloader"))
+				flag = REBOOT_FLAG_FASTBOOT;
+		}
+	} else if (code == SYS_POWER_OFF) {
+		flag = REBOOT_FLAG_POWER_OFF;
+	}
+
+	/* The Samsung LOKE bootloader will look for the boot flag at a fixed
+	 * offset from the end of the 1st SAR bank.
+	 */
+	writel(flag, sar_base + SAR_BANK2_OFFSET - 0xC);
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block reboot_notifier = {
+	.notifier_call = reboot_notifier_call,
+};
+
 /**
  * omap4_pm_init - Init routine for OMAP4+ devices
  *
@@ -391,6 +432,7 @@ int __init omap4_pm_init(void)
 		pr_err("cannot register pda-power\n");
 
 	//i2c_register_board_info(4, max17040_i2c, ARRAY_SIZE(max17040_i2c));
+	register_reboot_notifier(&reboot_notifier);
 
 err2:
 	return ret;
